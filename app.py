@@ -5,11 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from portfolio import df_pivot, generate_random_portfolios
 
-# --- UI Controls ---
-st.title("📊 Optimized Portfolio Builder")
+st.set_page_config(page_title="Portfolio Optimizer Dashboard", layout="wide")
 
-risk_profile = st.selectbox("Select Risk Profile", ["Low", "Moderate", "High"])
-max_return = st.radio("Optimization Objective", ["Maximize Sharpe Ratio", "Maximize Return"])
+# --- Sidebar Controls ---
+st.sidebar.title("Portfolio Settings")
+risk_profile = st.sidebar.selectbox("Select Risk Profile", ["Low", "Moderate", "High"])
+objective = st.sidebar.radio("Optimization Objective", ["Maximize Sharpe Ratio", "Maximize Return"])
 
 # --- Portfolio Simulation ---
 returns = df_pivot.pct_change().dropna()
@@ -30,60 +31,54 @@ elif risk_profile == "Moderate":
 else:
     filtered = results_df[results_df["Volatility"] > results_df["Volatility"].quantile(0.66)]
 
-# --- Determine valid range for Num Stocks ---
+# --- Slider for number of stocks ---
 min_stocks = max(1, int(filtered["Num Stocks"].min())) if not filtered.empty else 1
 max_stocks = max(min_stocks, int(filtered["Num Stocks"].max())) if not filtered.empty else 37
-
-# Clamp default within valid bounds
-default_stocks = st.session_state.get("selected_stocks", max_stocks)
-default_stocks = max(min_stocks, min(max_stocks, default_stocks))
-
-selected_stocks = st.slider(
-    "Max Number of Stocks",
-    min_stocks,
-    max_stocks,
-    value=default_stocks,
-    key="selected_stocks"
-)
-
+selected_stocks = st.sidebar.slider("Max Number of Stocks", min_stocks, max_stocks, value=max_stocks)
 filtered = filtered[filtered["Num Stocks"] <= selected_stocks]
 
-# --- Optimization Objective ---
+# --- Optimize ---
 if not filtered.empty:
-    if max_return == "Maximize Return":
+    if objective == "Maximize Return":
         best_idx = filtered["Return"].idxmax()
     else:
         best_idx = filtered["Sharpe Ratio"].idxmax()
 
     best_portfolio = filtered.loc[best_idx]
-
-    # --- Display Best Portfolio ---
-    st.subheader("Best Portfolio Weights")
     weights_df = best_portfolio[df_pivot.columns]
     weights_df = weights_df[weights_df > 0.01].sort_values(ascending=False)
-    st.dataframe(weights_df)
-    st.bar_chart(weights_df)
 
-    # --- Display Stats ---
-    st.metric("Expected Return", f"{best_portfolio['Return']:.2%}")
-    st.metric("Volatility", f"{best_portfolio['Volatility']:.2%}")
-    st.metric("Sharpe Ratio", f"{best_portfolio['Sharpe Ratio']:.2f}")
+    st.title("Portfolio Optimizer Dashboard")
 
-    # --- Backtest Performance Plot ---
-    st.subheader("Simulated Backtest Performance")
-
+    # --- Backtest Chart ---
+    st.subheader("Backtested Portfolio Performance")
     aligned_weights = weights_df.reindex(df_pivot.columns, fill_value=0.0)
     cum_returns = (returns @ aligned_weights).cumsum()
     base = cum_returns.iloc[0]
-    normalized = (cum_returns - base + 1) * 100
+    normalized_returns = (cum_returns - base + 1) * 100
 
-    fig, ax = plt.subplots()
-    ax.plot(normalized, label="Cumulative Return")
-    ax.set_title("Backtested Portfolio Performance")
-    ax.set_ylabel("Portfolio Value (Index)")
-    ax.set_xlabel("Date")
-    ax.legend()
+    fig, ax = plt.subplots(figsize=(6, 2))
+    ax.plot(normalized_returns, label="Cumulative Return", color="dodgerblue", linewidth=1.5)
+    ax.set_title("Backtested Portfolio Performance", fontsize=10)
+    ax.set_ylabel("Portfolio Value (Index)", fontsize=8)
+    ax.set_xlabel("Date", fontsize=8)
+    ax.tick_params(labelsize=6)
+    ax.legend(fontsize=6, loc='upper left')
     st.pyplot(fig)
 
+    # --- Bar Chart of Weights ---
+    st.subheader("Portfolio Composition")
+    st.bar_chart(weights_df)
+
+    # --- Portfolio Metrics ---
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Expected Return", f"{best_portfolio['Return']:.2%}")
+    col2.metric("Volatility", f"{best_portfolio['Volatility']:.2%}")
+    col3.metric("Sharpe Ratio", f"{best_portfolio['Sharpe Ratio']:.2f}")
+
+    # --- Show Dataframe ---
+    st.subheader("Portfolio Weights Table")
+    st.dataframe(weights_df)
+
 else:
-    st.warning("⚠️ No portfolios matched the selected criteria. Try adjusting risk or max stock number.")
+    st.warning("No portfolios matched the selected criteria. Try adjusting risk or max stock number.")

@@ -30,7 +30,7 @@ summary_df = pd.DataFrame({
 
 print(summary_df.sort_values("Sharpe Ratio", ascending=False))
 
-def generate_random_portfolios(returns, num_portfolios=50000):
+def generate_random_portfolios(returns, num_portfolios=20000):
     num_assets = returns.shape[1]
     weights = np.random.dirichlet(np.ones(num_assets), size=num_portfolios)
 
