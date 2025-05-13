@@ -59,7 +59,6 @@ if not filtered.empty:
 
     fig, ax = plt.subplots(figsize=(6, 2))
     ax.plot(normalized_returns, label="Cumulative Return", color="dodgerblue", linewidth=1.5)
-    ax.set_title("Backtested Portfolio Performance", fontsize=10)
     ax.set_ylabel("Portfolio Value (Index)", fontsize=8)
     ax.set_xlabel("Date", fontsize=8)
     ax.tick_params(labelsize=6)
