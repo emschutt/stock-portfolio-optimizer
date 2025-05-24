@@ -10,6 +10,9 @@ st.title("Portfolio Optimizer Dashboard")
 # --- Sidebar Options ---
 st.sidebar.title("Portfolio Settings")
 
+# Objective selection
+objective_choice = st.sidebar.radio("Objective", ["Maximize Sharpe Ratio", "Maximize Return"])
+
 # Slider controls
 min_assets = st.sidebar.slider("Minimum # of Assets", 1, 20, value=5)
 max_assets = st.sidebar.slider("Maximum # of Assets", min_assets, 30, value=12)
@@ -21,7 +24,8 @@ show_table = st.sidebar.checkbox("Show Portfolio Table", value=True)
 weights, ret, vol, sharpe, tickers, returns = optimize_portfolio(
     min_assets=min_assets,
     max_assets=max_assets,
-    max_weight=max_weight
+    max_weight=max_weight,
+    objective_choice=objective_choice.lower().replace("maximize ", "")
 )
 
 weights_df = pd.Series(weights, index=tickers)

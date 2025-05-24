@@ -3,10 +3,9 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 
-# --- Parameters ---
-objective_choice = "sharpe"  # or "return"
+# --- Constants ---
 risk_free_rate = 0.03
-max_volatility = 0.15
+max_volatility = 0.35
 penalty_strength = 1e5
 
 # --- Load Data ---
@@ -31,7 +30,7 @@ def portfolio_performance(weights):
 def sum_constraint(weights):
     return np.sum(weights) - 1
 
-def optimize_portfolio(min_assets=5, max_assets=12, max_weight=0.20):
+def optimize_portfolio(min_assets=5, max_assets=12, max_weight=0.20, objective_choice="sharpe"):
     def min_cardinality_constraint(weights):
         return np.sum(weights > 1e-4) - min_assets
 
