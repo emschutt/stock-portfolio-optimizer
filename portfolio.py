@@ -1,53 +1,63 @@
 import sqlite3
 import pandas as pd
 import numpy as np
+from scipy.optimize import minimize
 
-# Load data
+# --- Parameters ---
+objective_choice = "sharpe"  # or "return"
+risk_free_rate = 0.03
+max_volatility = 0.15
+penalty_strength = 1e5
+
+# --- Load Data ---
 conn = sqlite3.connect("data/cac40_prices.sqlite")
 df = pd.read_sql("SELECT date, ticker, close FROM stock_prices", conn)
 conn.close()
 
-# Convert date to datetime
 df["date"] = pd.to_datetime(df["date"])
+df_pivot = df.pivot(index="date", columns="ticker", values="close").dropna()
+returns = df_pivot.pct_change().dropna()
+mean_returns = returns.mean()
+cov_matrix = returns.cov()
+tickers = mean_returns.index.tolist()
+num_assets = len(tickers)
 
-# Pivot to time series format
-df_pivot = df.pivot(index="date", columns="ticker", values="close").dropna(axis=1)
+def portfolio_performance(weights):
+    annual_return = np.dot(weights, mean_returns) * 252
+    annual_vol = np.sqrt(weights.T @ cov_matrix @ weights) * np.sqrt(252)
+    sharpe_ratio = (annual_return - risk_free_rate) / annual_vol if annual_vol > 1e-6 else 0
+    return annual_return, annual_vol, sharpe_ratio
 
-# Log returns
-log_returns = np.log(df_pivot / df_pivot.shift(1)).dropna()
+def sum_constraint(weights):
+    return np.sum(weights) - 1
 
-# Annualized metrics
-mean_returns = log_returns.mean() * 252
-volatility = log_returns.std() * np.sqrt(252)
-sharpe_ratios = mean_returns / volatility
+def optimize_portfolio(min_assets=5, max_assets=12, max_weight=0.20):
+    def min_cardinality_constraint(weights):
+        return np.sum(weights > 1e-4) - min_assets
 
-# Create summary DataFrame
-summary_df = pd.DataFrame({
-    "Annualized Return": mean_returns,
-    "Annualized Volatility": volatility,
-    "Sharpe Ratio": sharpe_ratios
-})
+    def max_cardinality_constraint(weights):
+        return max_assets - np.sum(weights > 1e-4)
 
-print(summary_df.sort_values("Sharpe Ratio", ascending=False))
+    def objective(weights):
+        ret, vol, sharpe = portfolio_performance(weights)
+        score = -sharpe if objective_choice == "sharpe" else -ret
+        risk_penalty = penalty_strength * max(0, vol - max_volatility)**2
+        weight_penalty = penalty_strength * np.sum(np.maximum(0, weights - max_weight)**2)
+        return score + risk_penalty + weight_penalty
 
-def generate_random_portfolios(returns, num_portfolios=20000):
-    num_assets = returns.shape[1]
-    weights = np.random.dirichlet(np.ones(num_assets), size=num_portfolios)
+    constraints = [
+        {'type': 'eq', 'fun': sum_constraint},
+        {'type': 'ineq', 'fun': min_cardinality_constraint},
+        {'type': 'ineq', 'fun': max_cardinality_constraint}
+    ]
 
-    port_returns = []
-    port_vols = []
-    sharpe_ratios = []
+    bounds = [(0, max_weight) for _ in range(num_assets)]
+    initial_weights = np.ones(num_assets) / num_assets
 
-    mean_returns = returns.mean() * 252
-    cov_matrix = returns.cov() * 252
+    result = minimize(objective, initial_weights, method='SLSQP',
+                      bounds=bounds, constraints=constraints,
+                      options={'disp': False, 'maxiter': 1000})
 
-    for w in weights:
-        ret = np.dot(w, mean_returns)
-        vol = np.sqrt(np.dot(w.T, np.dot(cov_matrix, w)))
-        sharpe = ret / vol
-
-        port_returns.append(ret)
-        port_vols.append(vol)
-        sharpe_ratios.append(sharpe)
-
-    return weights, np.array(port_returns), np.array(port_vols), np.array(sharpe_ratios)
+    weights = result.x
+    ret, vol, sharpe = portfolio_performance(weights)
+    return weights, ret, vol, sharpe, tickers, returns
