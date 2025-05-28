@@ -1,6 +1,0 @@
-etl:
-  raw_data_path: "data/raw/CAC40_stocks_2021_2023.csv"
-  staged_data_path: "data/staged/cleaned_prices.parquet"
-
-sqlite:
-  path: "data/db/stock_data.sqlite"

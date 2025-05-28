@@ -4,14 +4,12 @@ import pandas as pd
 
 def clean_stock_data(df):
     """
-    Cleans and formats stock data:
-    - Drops missing values
-    - Renames columns to standardized format
-    - Ensures 'date' column is datetime type
+    Cleans and formats stock to drop missing values,
+    standardize columns and ensure date column is datetime
     """
     df = df.dropna()
 
-    # Rename columns for consistency
+
     df = df.rename(columns={
         "Date": "date",
         "Open": "open",
@@ -23,7 +21,6 @@ def clean_stock_data(df):
         "Stock": "ticker"
     })
 
-    # Make sure date is datetime type
     df['date'] = pd.to_datetime(df['date'])
 
     return df

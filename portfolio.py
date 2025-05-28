@@ -3,12 +3,13 @@ import pandas as pd
 import numpy as np
 from scipy.optimize import minimize
 
-# --- Constants ---
+# Parameters for the MVO
+objective_choice = "sharpe"
 risk_free_rate = 0.03
-max_volatility = 0.35
+max_volatility = 0.15
 penalty_strength = 1e5
 
-# --- Load Data ---
+# Load Data
 conn = sqlite3.connect("data/cac40_prices.sqlite")
 df = pd.read_sql("SELECT date, ticker, close FROM stock_prices", conn)
 conn.close()
@@ -30,7 +31,7 @@ def portfolio_performance(weights):
 def sum_constraint(weights):
     return np.sum(weights) - 1
 
-def optimize_portfolio(min_assets=5, max_assets=12, max_weight=0.20, objective_choice="sharpe"):
+def optimize_portfolio(min_assets=5, max_assets=12, max_weight=0.20):
     def min_cardinality_constraint(weights):
         return np.sum(weights > 1e-4) - min_assets
 
