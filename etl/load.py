@@ -8,7 +8,7 @@ def save_to_sqlite(df, db_path="data/cac40_prices.sqlite", table_name="stock_pri
     Saves the cleaned data to a SQLite database
     """
     if df.empty:
-        print("⚠️ DataFrame is empty. Nothing to save.")
+        print("DataFrame is empty. Nothing to save.")
         return
 
     dir_path = os.path.dirname(db_path)
