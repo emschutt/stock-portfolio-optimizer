@@ -4,10 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from portfolio import df_pivot, optimize_portfolio
 
-st.set_page_config(page_title="Portfolio Optimizer Dashboard", layout="wide")
-st.title("Portfolio Optimizer Dashboard")
+st.set_page_config(page_title="Maximize Your Sharpe!", layout="wide")
+st.title("Maximize Your Sharpe!")
 
-# Sidebar Options
+# Sidebar 
 st.sidebar.title("Portfolio Settings")
 
 # Slider controls
@@ -17,7 +17,7 @@ max_weight = st.sidebar.slider("Max Weight per Stock", 0.05, 1.0, value=0.20, st
 
 show_table = st.sidebar.checkbox("Show Portfolio Table", value=True)
 
-# Optimize according to Parameters
+# Optimize 
 weights, ret, vol, sharpe, tickers, returns = optimize_portfolio(
     min_assets=min_assets,
     max_assets=max_assets,
@@ -27,7 +27,7 @@ weights, ret, vol, sharpe, tickers, returns = optimize_portfolio(
 weights_df = pd.Series(weights, index=tickers)
 weights_df = weights_df[weights_df > 0.01].sort_values(ascending=False)
 
-# Plot Backtest
+#  Plotting backtest
 st.subheader("Backtested Portfolio Performance")
 aligned_weights = weights_df.reindex(df_pivot.columns, fill_value=0.0)
 cum_returns = (returns @ aligned_weights).cumsum()
@@ -42,17 +42,17 @@ ax.tick_params(labelsize=6)
 ax.legend(fontsize=6, loc='upper left')
 st.pyplot(fig)
 
-# Bar Chart of Weights
+#bar chart of portfolio weights
 st.subheader("Portfolio Composition")
 st.bar_chart(weights_df)
 
-# Metrics
+# stats
 col1, col2, col3 = st.columns(3)
 col1.metric("Expected Return", f"{ret:.2%}")
 col2.metric("Volatility", f"{vol:.2%}")
 col3.metric("Sharpe Ratio", f"{sharpe:.2f}")
 
-# Optional Table
+# weights table
 if show_table:
     st.subheader("Portfolio Weights Table")
     st.dataframe(weights_df)
